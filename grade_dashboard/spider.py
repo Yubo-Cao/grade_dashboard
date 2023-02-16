@@ -1,44 +1,16 @@
 import asyncio
 import json
 from contextlib import asynccontextmanager
-from typing import Literal
+from typing import Literal, Any
 
 import aiohttp
 from lxml.etree import HTML
 from yarl import URL
 
+from .constants import DASHBOARD_URL
 from .exception import SpiderIOException
-from .utils import (
-    cached,
-    chunked,
-    find,
-    first,
-    get_var,
-    identifier,
-    submit,
-)
-
-
-@cached
-async def cookie():
-    return aiohttp.CookieJar(unsafe=True)
-
-
-@cached
-async def session():
-    return aiohttp.ClientSession(
-        cookie_jar=await cookie(),
-        headers={
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36"
-        },
-    )
-
-
-async def on_exit():
-    await (await session()).close()
-
-
-DASHBOARD_URL = URL("https://apps.gwinnett.k12.ga.us/")
+from .session_manager import manager
+from .utils import cached, chunked, find, first, get_var, identifier, submit
 
 
 def resolve_url(url: str | URL, base_url: URL) -> URL:
@@ -52,23 +24,7 @@ def resolve_url(url: str | URL, base_url: URL) -> URL:
 
 
 @cached
-async def login(username: str, password: str) -> bool:
-    s = await session()
-    async with s.post(
-        DASHBOARD_URL / "pkmslogin.form",
-        data={
-            "forgotpass": "p0/IZ7_3AM0I440J8GF30AIL6LB453082=CZ6_3AM0I440J8GF30AIL6LB4530G6=LA0=OC=Eaction!ResetPasswd==/#Z7_3AM0I440J8GF30AIL6LB453082",
-            "login-form-type": "pwd",
-            "username": username,
-            "password": password,
-        },
-    ) as r:
-        return r.ok
-
-
-@cached
-async def apps() -> list[tuple[str, URL]]:
-    s = await session()
+async def apps(s: aiohttp.ClientSession) -> list[tuple[str, URL]]:
     url = DASHBOARD_URL / "dca" / "student" / "dashboard"
     async with s.get(url) as r:
         text = await r.text()
@@ -90,60 +46,58 @@ async def apps() -> list[tuple[str, URL]]:
 
 
 @cached
-async def vue_url() -> URL:
-    return find(await apps(), "my_student_vue")
+async def vue_url(s: aiohttp.ClientSession) -> URL:
+    return find(await apps(s), "my_student_vue")
 
 
 @cached
-async def vue():
-    s = await session()
-    async with s.get(await vue_url()) as r:
+async def vue(s: aiohttp.ClientSession):
+    async with s.get(await vue_url(submit)) as r:
         text = await r.text()
     async with submit(s, text) as r:
         return r.url.parent, await r.text()
 
 
 @cached
-async def vue_base_url():
-    VUE_BASE_URL, _ = await vue()
+async def vue_base_url(s: aiohttp.ClientSession):
+    VUE_BASE_URL, _ = await vue(s)
     return VUE_BASE_URL
 
 
 @cached
-async def vue_script():
-    _, html_raw = await vue()
+async def vue_script(s: aiohttp.ClientSession):
+    _, html_raw = await vue(s)
     html = HTML(html_raw.encode("utf-8"))
     script = html.xpath("//head/script[1]/text()")[0]
     return script
 
 
 @cached
-async def grade_book_url():
-    return find(await navigations(), "grade_book")
+async def grade_book_url(s: aiohttp.ClientSession):
+    return find(await navigations(s), "grade_book")
 
 
 @cached
-async def navigations():
+async def navigations(s: aiohttp.ClientSession):
     return [
         (
             identifier(nav.get("description")),
-            resolve_url(URL(nav.get("url")), await vue_base_url()),
+            resolve_url(URL(nav.get("url")), await vue_base_url(s)),
         )
-        for nav in get_var("PXP.NavigationData", await vue_script())["items"]
+        for nav in get_var("PXP.NavigationData", await vue_script(s))["items"]
     ]
 
 
 @cached
-async def grade_book():
-    s = await session()
-    async with s.get(await grade_book_url()) as r:
+async def grade_book(s: aiohttp.ClientSession):
+    async with s.get(await grade_book_url(s)) as r:
         text = await r.text()
         return HTML(text.encode("utf-8"))
 
 
 @cached
-async def courses():
-    html = await grade_book()
+async def courses(s: aiohttp.ClientSession):
+    html = await grade_book(s)
     rows = chunked(
         html.xpath(
             '//div[@id="gradebook-content"]'
@@ -166,9 +120,12 @@ async def courses():
     ]
 
 
-async def load_control(control_name: str, params: dict[str, any]) -> dict:
-    s = await session()
-    url = (await vue_base_url()) / "service" / "PXP2Communication.asmx" / "LoadControl"
+async def load_control(
+    s: aiohttp.ClientSession,
+    control_name: str,
+    params: dict[str, Any],
+) -> dict:
+    url = (await vue_base_url(s)) / "service" / "PXP2Communication.asmx" / "LoadControl"
     data = dict(request=dict(control=control_name, parameters=params))
     async with s.post(
         url,
@@ -180,8 +137,9 @@ async def load_control(control_name: str, params: dict[str, any]) -> dict:
         return await r.json()
 
 
-async def load_course(course):
+async def load_course(s: aiohttp.ClientSession, course):
     await load_control(
+        s,
         course["params"]["LoadParams"]["ControlName"],
         course["params"]["FocusArgs"],
     )
@@ -191,28 +149,27 @@ course_lock = asyncio.Lock()
 
 
 @asynccontextmanager
-async def course(course: dict[str, any] | int | str):
+async def course(s: aiohttp.ClientSession, course: dict[str, any] | int | str):
     if isinstance(course, int):
-        course = (await courses())[course]
+        course = (await courses(s))[course]
     elif isinstance(course, str):
         course = first(
             (
                 c
-                for c in await courses()
+                for c in await courses(s)
                 if course.lower() in c.get("course", "").lower()
             )
         )
     if not course:
         raise ValueError("No course found")
     async with course_lock:
-        await load_course(course)
+        await load_course(s, course)
         yield
 
 
-async def call_api(action: str, data: dict[str, any]) -> dict:
-    s = await session()
+async def call_api(s: aiohttp.ClientSession, action: str, data: dict[str, Any]) -> dict:
     url = (
-        (await vue_base_url()) / "api" / "GB" / "ClientSideData" / "Transfer"
+        (await vue_base_url(s)) / "api" / "GB" / "ClientSideData" / "Transfer"
     ).with_query(action=action)
     headers = {
         "CURRENT_WEB_PORTAL": "StudentVUE",
@@ -225,8 +182,9 @@ async def call_api(action: str, data: dict[str, any]) -> dict:
         return await r.json()
 
 
-async def get_class_data():
+async def get_class_data(s: aiohttp.ClientSession):
     return await call_api(
+        s,
         "genericdata.classdata-GetClassData",
         {
             "FriendlyName": "genericdata.classdata",
@@ -237,10 +195,12 @@ async def get_class_data():
 
 
 async def get_items(
+    s: aiohttp.ClientSession,
     sort: str = "due_date",
     group_by: Literal["Week", "Subject", "AssignmentType", "Unit", "Date"] = "Week",
 ):
     return await call_api(
+        s,
         "pxp.course.content.items-LoadWithOption",
         {
             "FriendlyName": "pxp.course.content.items",
@@ -262,10 +222,10 @@ async def get_items(
 
 
 async def fetch(username: str, password: str):
-    await login(username, password)
+    s = manager.get_session(username, password)
 
     async def fetch_course(c) -> tuple[dict, dict]:
-        async with course(c):
-            return await asyncio.gather(get_class_data(), get_items())
+        async with course(s, c):
+            return await asyncio.gather(get_class_data(s), get_items(s))
 
-    return await asyncio.gather(*(fetch_course(c) for c in await courses()))
+    return await asyncio.gather(*(fetch_course(c) for c in await courses(s)))

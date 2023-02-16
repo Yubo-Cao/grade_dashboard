@@ -1,5 +1,6 @@
 import aiohttp
 
+
 class SpiderIOException(Exception):
     def __init__(
         self,
@@ -20,3 +21,7 @@ class SpiderIOException(Exception):
 
     def __str__(self):
         return f"{self.message} ({self.url}, {self.code})"
+
+
+class LoginFailedException(SpiderIOException):
+    pass

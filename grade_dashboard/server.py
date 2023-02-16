@@ -3,7 +3,7 @@ import aiohttp
 from aiohttp import web
 
 from .parse import parse
-from .spider import fetch, on_exit
+from .spider import fetch
 
 
 async def get_courses(request: web.Request):
@@ -12,3 +12,6 @@ async def get_courses(request: web.Request):
     params = request.rel_url.query
     username = params.get("username")
     password = params.get("password")
+
+    if not username or not password:
+        return web.json_response({"error": "Missing username or password"})
