@@ -4,9 +4,6 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html>
-      <head />
-      <body>{children}</body>
-    </html>
+    <div className='p-4'>{children}</div>
   )
 }
