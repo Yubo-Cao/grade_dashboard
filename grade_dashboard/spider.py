@@ -16,7 +16,6 @@ from .utils import (
     get_var,
     identifier,
     submit,
-    retry,
 )
 
 
@@ -52,7 +51,7 @@ def resolve_url(url: str | URL, base_url: URL) -> URL:
     )
 
 
-@retry
+@cached
 async def login(username: str, password: str) -> bool:
     s = await session()
     async with s.post(
@@ -67,7 +66,6 @@ async def login(username: str, password: str) -> bool:
         return r.ok
 
 
-@retry(deps=[login])
 @cached
 async def apps() -> list[tuple[str, URL]]:
     s = await session()
@@ -91,13 +89,11 @@ async def apps() -> list[tuple[str, URL]]:
         return apps
 
 
-@retry(deps=[apps])
 @cached
 async def vue_url() -> URL:
     return find(await apps(), "my_student_vue")
 
 
-@retry(deps=[vue_url])
 @cached
 async def vue():
     s = await session()
@@ -107,14 +103,12 @@ async def vue():
         return r.url.parent, await r.text()
 
 
-@retry(deps=[vue])
 @cached
 async def vue_base_url():
     VUE_BASE_URL, _ = await vue()
     return VUE_BASE_URL
 
 
-@retry(deps=[vue])
 @cached
 async def vue_script():
     _, html_raw = await vue()
@@ -123,13 +117,11 @@ async def vue_script():
     return script
 
 
-@retry(deps=[vue_script])
 @cached
 async def grade_book_url():
     return find(await navigations(), "grade_book")
 
 
-@retry(deps=[grade_book_url])
 @cached
 async def navigations():
     return [
@@ -141,7 +133,6 @@ async def navigations():
     ]
 
 
-@retry(deps=[grade_book_url])
 @cached
 async def grade_book():
     s = await session()
@@ -150,7 +141,6 @@ async def grade_book():
         return HTML(text.encode("utf-8"))
 
 
-@retry(deps=[grade_book])
 @cached
 async def courses():
     html = await grade_book()
@@ -219,7 +209,6 @@ async def course(course: dict[str, any] | int | str):
         yield
 
 
-@retry(deps=[course])
 async def call_api(action: str, data: dict[str, any]) -> dict:
     s = await session()
     url = (
