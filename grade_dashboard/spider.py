@@ -1,7 +1,6 @@
 import asyncio
 import json
 from contextlib import asynccontextmanager
-from functools import partial
 from typing import Any, Literal
 
 import aiohttp
@@ -12,7 +11,7 @@ from .constants import DASHBOARD_URL
 from .exception import SpiderIOException
 from .utils import cached, chunked, find, first, get_var, identifier, submit
 
-multicached = partial(cached, size=128)
+multicached = cached(128)
 
 
 def resolve_url(url: str | URL, base_url: URL) -> URL:
@@ -95,6 +94,7 @@ async def grade_book(s: aiohttp.ClientSession):
         return HTML(text.encode("utf-8"))
 
 
+@multicached
 async def courses(s: aiohttp.ClientSession):
     html = await grade_book(s)
     rows = chunked(
@@ -106,17 +106,19 @@ async def courses(s: aiohttp.ClientSession):
         ),
         2,
     )
-    return [
+    result = [
         dict(
             course=first(header.xpath("div[1]/button/text()")),
             teacher=first(
                 header.xpath('.//span[contains(@class, "teacher")]//a/text()')
             ),
             grade=first(content.xpath('.//span[contains(@class, "mark")]/text()')),
-            params=json.loads(first(header.xpath(".//button/@data-focus"))),
+            params=(params := json.loads(first(header.xpath(".//button/@data-focus")))),
+            id=params["FocusArgs"]["classID"],
         )
         for header, content in rows
     ]
+    return result
 
 
 async def load_control(
@@ -149,21 +151,52 @@ course_lock = asyncio.Lock()
 
 @asynccontextmanager
 async def course(s: aiohttp.ClientSession, course: dict[str, any] | int | str):
-    if isinstance(course, int):
-        course = (await courses(s))[course]
-    elif isinstance(course, str):
-        course = first(
-            (
-                c
-                for c in await courses(s)
-                if course.lower() in c.get("course", "").lower()
-            )
-        )
+    course = await resolve_course(s, course)
     if not course:
         raise ValueError("No course found")
     async with course_lock:
         await load_course(s, course)
         yield
+
+
+async def resolve_course(
+    s: aiohttp.ClientSession,
+    course: dict[str, any] | int | str,
+    type: Literal["auto", "index", "id", "name"] = "auto",
+):
+    if isinstance(course, dict):
+        return course
+    match type:
+        case "auto":
+            if isinstance(course, int):
+                course = (await courses(s))[course]
+            elif isinstance(course, str):
+                course = first(
+                    (c for c in await courses() if course == str(c.get("id")))
+                ) or first(
+                    (
+                        c
+                        for c in await courses(s)
+                        if course.lower() in c.get("course", "").lower()
+                    )
+                )
+        case "index":
+            course = (await courses(s))[course]
+        case "id":
+            course = first((c for c in await courses(s) if course == c.get("id")))
+        case "name":
+            course = first(
+                (
+                    c
+                    for c in await courses(s)
+                    if course.lower() in c.get("course").lower()
+                )
+            )
+        case _:
+            raise ValueError(f"Unknown type {type}")
+    if not course:
+        raise ValueError("No course found")
+    return course
 
 
 async def call_api(s: aiohttp.ClientSession, action: str, data: dict[str, Any]) -> dict:
@@ -220,9 +253,10 @@ async def get_items(
     )
 
 
-async def fetch(s: aiohttp.ClientSession, username: str, password: str):
-    async def fetch_course(c) -> tuple[dict, dict]:
-        async with course(s, c):
-            return await asyncio.gather(get_class_data(s), get_items(s))
+async def get_course_data(s: aiohttp.ClientSession, c) -> tuple[dict, dict]:
+    async with course(s, c):
+        return await asyncio.gather(get_class_data(s), get_items(s))
 
-    return await asyncio.gather(*(fetch_course(c) for c in await courses(s)))
+
+async def get_courses_data(s: aiohttp.ClientSession, username: str, password: str):
+    return await asyncio.gather(*(get_course_data(s, c) for c in await courses(s)))
