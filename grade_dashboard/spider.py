@@ -258,5 +258,5 @@ async def get_course_data(s: aiohttp.ClientSession, c) -> tuple[dict, dict]:
         return await asyncio.gather(get_class_data(s), get_items(s))
 
 
-async def get_courses_data(s: aiohttp.ClientSession, username: str, password: str):
+async def get_courses_data(s: aiohttp.ClientSession):
     return await asyncio.gather(*(get_course_data(s, c) for c in await courses(s)))

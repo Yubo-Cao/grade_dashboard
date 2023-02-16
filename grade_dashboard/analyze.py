@@ -89,6 +89,7 @@ def plot_score_by_type(df: pd.DataFrame) -> go.Figure:
         color_discrete_sequence=px.colors.qualitative.Pastel,
         orientation="h",
         title="Score by Type",
+        color="measure_type",
     )
 
 
@@ -151,7 +152,6 @@ def plot_scores(
             orientation="h",
             title=title,
         )
-        fig.show()
     else:
         fig = px.line_polar(
             df,
@@ -162,4 +162,4 @@ def plot_scores(
             title=title,
         )
         fig.update_traces(fill="toself")
-        fig.show()
+    return fig

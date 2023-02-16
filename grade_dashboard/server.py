@@ -1,8 +1,11 @@
 import json
+from decimal import Decimal
+from io import StringIO
+from typing import Any
 
 import pandas as pd
 from aiohttp import web
-from decimal import Decimal
+from plotly import graph_objects as go
 
 from .analyze import (
     get_blame,
@@ -10,11 +13,20 @@ from .analyze import (
     get_grade_df,
     get_score_by_type,
     get_total_score,
+    plot_blame,
+    plot_contrib,
+    plot_score_by_type,
+    plot_scores,
 )
 from .exception import LoginFailedException
-from .parse import parse_class_data, parse_gradebook_items, parse_items
+from .parse import (
+    parse_class_data,
+    parse_courses_data,
+    parse_gradebook_items,
+    parse_items,
+)
 from .session_manager import manager
-from .spider import courses, get_course_data, resolve_course
+from .spider import courses, get_course_data, get_courses_data, resolve_course
 
 
 async def get_session(request):
@@ -94,11 +106,11 @@ class DecimalEncoder(json.JSONEncoder):
         return super(DecimalEncoder, self).default(o)
 
 
-def json_response(result):
+def json_response(result: Any):
     return web.Response(text=json.dumps(result, cls=DecimalEncoder))
 
 
-async def get_course(request):
+async def get_course(request: web.Request):
     params = request.rel_url.query
     id = params.get("id")
     name = params.get("name")
@@ -126,6 +138,51 @@ async def on_shutdown(app):
     await manager.cleanup()
 
 
+def fig_to_html(fig: go.Figure) -> str:
+    buf = StringIO()
+    fig.write_html(buf)
+    return buf.getvalue()
+
+
+async def handle_course_plot(request: web.Request):
+    c = await get_course(request)
+    grade_book_items = parse_gradebook_items(
+        *(await get_course_data(await get_session(request), c))
+    )
+    grade_book_df = grade_book_items["data"]
+    params = request.rel_url.query
+    type = params.get("type")
+    match type:
+        case "blame":
+            result = fig_to_html(plot_blame(grade_book_df))
+        case "contrib":
+            result = fig_to_html(plot_contrib(grade_book_df))
+        case "score_by_type":
+            result = fig_to_html(plot_score_by_type(grade_book_df))
+        case _:
+            raise web.HTTPBadRequest(reason="Invalid type")
+    return web.Response(text=result, content_type="text/html")
+
+
+async def handle_courses_plot(request: web.Request):
+    params = request.rel_url.query
+    type = params.get("type", "bar")
+    normalize = params.get("normalize", "false").lower() == "true"
+    weighted = params.get("weighted", "false").lower() == "true"
+    data = parse_courses_data(await get_courses_data(await get_session(request)))
+    return web.Response(
+        text=fig_to_html(
+            plot_scores(
+                data,
+                type=type,
+                normalize=normalize,
+                weighted=weighted,
+            )
+        ),
+        content_type="text/html",
+    )
+
+
 def run():
     app = web.Application()
     app.on_shutdown.append(on_shutdown)
@@ -134,6 +191,8 @@ def run():
             web.get("/courses", handle_courses),
             web.get("/course", handle_course),
             web.get("/course/data", handle_course_data),
+            web.get("/course/plot", handle_course_plot),
+            web.get("/courses/plot", handle_courses_plot),
         ]
     )
     web.run_app(app, port=65535)

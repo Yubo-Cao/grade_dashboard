@@ -139,7 +139,7 @@ def parse_gradebook_items(
     }
 
 
-def parse(
+def parse_courses_data(
     result: list[tuple[dict, dict]]
 ) -> list[dict[str, dict[str, str] | pd.DataFrame]]:
     return [parse_gradebook_items(*e) for e in result]
