@@ -19,8 +19,8 @@ async def get_courses(request: web.Request):
     if not username or not password:
         raise web.HTTPBadRequest(reason="Missing username or password")
 
-    s = await manager.get_session(username, password)
     try:
+        s = await manager.get_session(username, password)
         result = await courses(s)
     except LoginFailedException:
         raise web.HTTPUnauthorized(reason="Invalid username or password")

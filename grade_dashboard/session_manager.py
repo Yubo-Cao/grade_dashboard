@@ -29,7 +29,7 @@ class SessionManager:
                 "password": password,
             },
         ) as r:
-            if not r.ok:
+            if not r.ok or "error" in (await r.text()):
                 await session.close()
                 raise LoginFailedException("Failed to login", r)
 
