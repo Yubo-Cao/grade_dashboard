@@ -1,7 +1,8 @@
 import asyncio
 import json
 from contextlib import asynccontextmanager
-from typing import Literal, Any
+from functools import partial
+from typing import Any, Literal
 
 import aiohttp
 from lxml.etree import HTML
@@ -9,8 +10,9 @@ from yarl import URL
 
 from .constants import DASHBOARD_URL
 from .exception import SpiderIOException
-from .session_manager import manager
 from .utils import cached, chunked, find, first, get_var, identifier, submit
+
+multicached = partial(cached, size=128)
 
 
 def resolve_url(url: str | URL, base_url: URL) -> URL:
@@ -23,7 +25,7 @@ def resolve_url(url: str | URL, base_url: URL) -> URL:
     )
 
 
-@cached
+@multicached
 async def apps(s: aiohttp.ClientSession) -> list[tuple[str, URL]]:
     url = DASHBOARD_URL / "dca" / "student" / "dashboard"
     async with s.get(url) as r:
@@ -45,7 +47,7 @@ async def apps(s: aiohttp.ClientSession) -> list[tuple[str, URL]]:
         return apps
 
 
-@cached
+@multicached
 async def vue_url(s: aiohttp.ClientSession) -> URL:
     return find(await apps(s), "my_student_vue")
 
@@ -57,7 +59,7 @@ async def vue(s: aiohttp.ClientSession):
         return r.url.parent, await r.text()
 
 
-@cached
+@multicached
 async def vue_base_url(s: aiohttp.ClientSession):
     VUE_BASE_URL, _ = await vue(s)
     return VUE_BASE_URL
@@ -70,12 +72,12 @@ async def vue_script(s: aiohttp.ClientSession):
     return script
 
 
-@cached
+@multicached
 async def grade_book_url(s: aiohttp.ClientSession):
     return find(await navigations(s), "grade_book")
 
 
-@cached
+@multicached
 async def navigations(s: aiohttp.ClientSession):
     return [
         (
@@ -86,7 +88,7 @@ async def navigations(s: aiohttp.ClientSession):
     ]
 
 
-@cached
+@multicached
 async def grade_book(s: aiohttp.ClientSession):
     async with s.get(await grade_book_url(s)) as r:
         text = await r.text()
