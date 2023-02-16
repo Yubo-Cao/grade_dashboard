@@ -50,9 +50,8 @@ async def vue_url(s: aiohttp.ClientSession) -> URL:
     return find(await apps(s), "my_student_vue")
 
 
-@cached
 async def vue(s: aiohttp.ClientSession):
-    async with s.get(await vue_url(submit)) as r:
+    async with s.get(await vue_url(s)) as r:
         text = await r.text()
     async with submit(s, text) as r:
         return r.url.parent, await r.text()
@@ -64,7 +63,6 @@ async def vue_base_url(s: aiohttp.ClientSession):
     return VUE_BASE_URL
 
 
-@cached
 async def vue_script(s: aiohttp.ClientSession):
     _, html_raw = await vue(s)
     html = HTML(html_raw.encode("utf-8"))
@@ -95,7 +93,6 @@ async def grade_book(s: aiohttp.ClientSession):
         return HTML(text.encode("utf-8"))
 
 
-@cached
 async def courses(s: aiohttp.ClientSession):
     html = await grade_book(s)
     rows = chunked(
@@ -221,9 +218,7 @@ async def get_items(
     )
 
 
-async def fetch(username: str, password: str):
-    s = manager.get_session(username, password)
-
+async def fetch(s: aiohttp.ClientSession, username: str, password: str):
     async def fetch_course(c) -> tuple[dict, dict]:
         async with course(s, c):
             return await asyncio.gather(get_class_data(s), get_items(s))
