@@ -36,6 +36,12 @@ class SessionManager:
         self.sessions[session_key] = session
         return session
 
+    async def cleanup_session(self, username: str, password: str):
+        session_key = f"{username}:{password}"
+        if session_key in self.sessions:
+            await self.sessions[session_key].close()
+            del self.sessions[session_key]
+
     async def cleanup(self):
         for session in self.sessions.values():
             await session.close()
