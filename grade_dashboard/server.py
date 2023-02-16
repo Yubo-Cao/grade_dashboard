@@ -28,6 +28,8 @@ from .parse import (
 from .session_manager import manager
 from .spider import courses, get_course_data, get_courses_data, resolve_course
 
+routes = web.RouteTableDef()
+
 
 async def get_session(request):
     params = request.rel_url.query
@@ -42,6 +44,7 @@ async def get_session(request):
     return s
 
 
+@routes.get("/courses")
 async def handle_courses(request: web.Request):
     """Get all courses from the database"""
 
@@ -50,6 +53,7 @@ async def handle_courses(request: web.Request):
     return json_response(result)
 
 
+@routes.get("/course/data")
 async def handle_course_data(request: web.Request):
     """Get a course data from the database"""
 
@@ -82,14 +86,6 @@ async def handle_course_data(request: web.Request):
             result = class_data["measure_types"]
         case _:
             raise web.HTTPBadRequest(reason="Invalid type")
-    return json_response(result)
-
-
-async def handle_courses(request: web.Request):
-    """Get all courses from the database"""
-
-    s = await get_session(request)
-    result = await courses(s)
     return json_response(result)
 
 
@@ -130,6 +126,7 @@ async def get_course(request: web.Request):
         raise web.HTTPNotFound(reason="Course not found")
 
 
+@routes.get("/course")
 async def handle_course(request: web.Request):
     return web.json_response(await get_course(request))
 
@@ -144,6 +141,7 @@ def fig_to_html(fig: go.Figure) -> str:
     return buf.getvalue()
 
 
+@routes.get("/course/plot")
 async def handle_course_plot(request: web.Request):
     c = await get_course(request)
     grade_book_items = parse_gradebook_items(
@@ -164,6 +162,7 @@ async def handle_course_plot(request: web.Request):
     return web.Response(text=result, content_type="text/html")
 
 
+@routes.get("/courses/plot")
 async def handle_courses_plot(request: web.Request):
     params = request.rel_url.query
     type = params.get("type", "bar")
@@ -186,13 +185,5 @@ async def handle_courses_plot(request: web.Request):
 def run():
     app = web.Application()
     app.on_shutdown.append(on_shutdown)
-    app.add_routes(
-        [
-            web.get("/courses", handle_courses),
-            web.get("/course", handle_course),
-            web.get("/course/data", handle_course_data),
-            web.get("/course/plot", handle_course_plot),
-            web.get("/courses/plot", handle_courses_plot),
-        ]
-    )
+    app.add_routes(routes)
     web.run_app(app, port=65535)
