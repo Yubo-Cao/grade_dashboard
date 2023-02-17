@@ -72,8 +72,6 @@ async def handle_course_data(request: web.Request):
             result = get_blame(grade_book_df)
         case "contrib":
             result = get_contrib(grade_book_df)
-        case "items":
-            result = get_grade_df(grade_book_df)
         case "score_by_type":
             result = get_score_by_type(grade_book_df)
         case "total_score":
