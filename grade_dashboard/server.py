@@ -103,7 +103,10 @@ class DecimalEncoder(json.JSONEncoder):
 
 
 def json_response(result: Any):
-    return web.Response(text=json.dumps(result, cls=DecimalEncoder))
+    return web.Response(
+        text=json.dumps(result, cls=DecimalEncoder),
+        content_type="application/json",
+    )
 
 
 async def get_course(request: web.Request):

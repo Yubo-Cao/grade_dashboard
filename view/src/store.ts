@@ -1,8 +1,35 @@
-import { configureStore, createSlice, PayloadAction } from "@reduxjs/toolkit";
+import {
+  configureStore,
+  createSelector,
+  createSlice,
+  PayloadAction,
+} from "@reduxjs/toolkit";
 import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
 
 // load initial from local storage
-const initialState = JSON.parse(localStorage.getItem("state") || "{}");
+type StateType = {
+  credential: {
+    username?: string;
+    password?: string;
+  };
+  config: {
+    weighted: boolean;
+    normalize: boolean;
+  };
+  currentCourse: string;
+};
+
+const initialState: StateType = {
+  credential: {
+    username: "",
+    password: "",
+  },
+  config: {
+    weighted: false,
+    normalize: false,
+  },
+  currentCourse: "",
+};
 
 // create slice
 const slice = createSlice({
@@ -13,10 +40,10 @@ const slice = createSlice({
       state,
       action: PayloadAction<{ username: string; password: string }>
     ) => {
-      state.crendential = action.payload;
+      state.credential = action.payload;
     },
     clearCredential: (state) => {
-      state.crendential = null;
+      state.credential = {};
     },
     configureGrade: (
       state,
@@ -41,7 +68,8 @@ const store = configureStore({
 
 // save to local storage
 store.subscribe(() => {
-  localStorage.setItem("state", JSON.stringify(store.getState()));
+  if (window !== undefined)
+    localStorage.setItem("state", JSON.stringify(store.getState()));
 });
 
 export const {
@@ -50,6 +78,15 @@ export const {
   configureGrade,
   setCurrentCourse,
 } = slice.actions;
+
+export const selectCredential = createSelector(
+  (state: RootState) => state.credential,
+  (credential) => credential
+);
+export const selectConfig = createSelector(
+  (state: RootState) => state.config,
+  (config) => config
+);
 
 export default store;
 export type RootState = ReturnType<typeof store.getState>;

@@ -5,7 +5,13 @@ module.exports = {
     fontFamily: {
       sans: ["Inter", "sans-serif"],
     },
-    extend: {},
+    extend: {
+      screens: {
+        sm: "640px",
+        md: "768px",
+        lg: "1024px",
+      },
+    },
   },
-  plugins: [],
+  plugins: [require("@tailwindcss/forms")],
 };

@@ -1,5 +1,6 @@
 import asyncio
 import json
+import re
 from contextlib import asynccontextmanager
 from typing import Any, Literal
 
@@ -106,6 +107,7 @@ async def courses(s: aiohttp.ClientSession):
         ),
         2,
     )
+    email = re.compile(r"[\w\.-]+@[\w\.-]+")
     result = [
         dict(
             course=first(header.xpath("div[1]/button/text()")),
@@ -114,6 +116,9 @@ async def courses(s: aiohttp.ClientSession):
             ),
             grade=first(content.xpath('.//span[contains(@class, "mark")]/text()')),
             params=(params := json.loads(first(header.xpath(".//button/@data-focus")))),
+            email=email.search(
+                first(header.xpath('.//span[contains(@class, "teacher")]//a/@href'))
+            ).group(0),
             id=params["FocusArgs"]["classID"],
         )
         for header, content in rows
