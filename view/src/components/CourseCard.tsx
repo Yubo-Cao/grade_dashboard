@@ -6,7 +6,7 @@ export type CourseCardProps = {
     onClick: () => void;
 };
 
-function getScoreStyle(score: number) {
+export function getScoreStyle(score: number) {
     let scoreStyle = "bg-gradient-to-br from-blue-500 to-indigo-500";
     if (score < 80) {
         scoreStyle = "bg-blue-200";

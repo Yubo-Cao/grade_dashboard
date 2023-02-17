@@ -55,7 +55,8 @@ export default function Index() {
                     </h1>
                     <p className="text-slate-600 text-2xl font-light leading-relaxed mt-4 max-w-4xl">
                         Better Gradebook is a free, open-source gradebook that
-                        helps <span className="text-sky-500 font-medium">you </span>
+                        helps{" "}
+                        <span className="text-sky-500 font-medium">you </span>
                         check your grades, track your assignments, and stay on
                         top of your classes.
                     </p>
