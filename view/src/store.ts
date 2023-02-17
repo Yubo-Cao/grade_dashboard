@@ -33,24 +33,28 @@ const initialState: StateType = {
   currentCourse: "",
 };
 
+if (typeof window !== "undefined") {
+  const state = localStorage.getItem("state");
+  if (state) {
+    const parsedState = JSON.parse(state);
+    initialState.credential = parsedState.credential;
+    initialState.config = parsedState.config;
+    initialState.currentCourse = parsedState.currentCourse;
+  }
+}
+
 // create slice
 const slice = createSlice({
   name: "app",
   initialState,
   reducers: {
-    setCredential: (
-      state,
-      action: PayloadAction<StateType['credential']>
-    ) => {
+    setCredential: (state, action: PayloadAction<StateType["credential"]>) => {
       state.credential = action.payload;
     },
     clearCredential: (state) => {
       state.credential = {};
     },
-    configureGrade: (
-      state,
-      action: PayloadAction<StateType['config']>
-    ) => {
+    setConfig: (state, action: PayloadAction<StateType["config"]>) => {
       state.config = action.payload;
     },
     setCurrentCourse: (state, action: PayloadAction<string>) => {
@@ -66,6 +70,7 @@ const store = configureStore({
     getDefaultMiddleware({
       serializableCheck: false,
     }),
+  preloadedState: initialState,
 });
 
 // save to local storage
@@ -74,12 +79,8 @@ store.subscribe(() => {
     localStorage.setItem("state", JSON.stringify(store.getState()));
 });
 
-export const {
-  setCredential,
-  clearCredential,
-  configureGrade,
-  setCurrentCourse,
-} = slice.actions;
+export const { setCredential, clearCredential, setConfig, setCurrentCourse } =
+  slice.actions;
 
 export const selectCredential = createSelector(
   (state: RootState) => state.credential,
