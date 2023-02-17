@@ -1,6 +1,6 @@
-import store from "@/store";
 import { ReactElement } from "react";
 import { Provider } from "react-redux";
+import store from "@/store/store";
 import "./global.css";
 
 interface AppProps {

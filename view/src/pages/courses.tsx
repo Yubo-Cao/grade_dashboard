@@ -1,13 +1,9 @@
 import RootLayout from "./layout";
 import CourseCard from "@/components/CourseCard";
 import Async from "react-async";
-import {
-  selectCredential,
-  selectCurrentCourse,
-  setCurrentCourse,
-  useAppDispatch,
-  useAppSelector,
-} from "@/store";
+import { selectCredential } from "@/store/credentialSlice";
+import { selectCurrentCourse } from "@/store/currentCourseSlice";
+import { useAppDispatch, useAppSelector } from "@/store/store";
 
 const loadCourses = async (
   username: string | undefined,
@@ -66,13 +62,22 @@ function CourseSelection() {
   );
 }
 
-async function loadCourse(id: string, action: "grade_book" | "blame" | "contrib" | "total_score" | "meta" | "comments" | "measure_types" | "score_by_type") {
-  
+type ActionType =
+  | "grade_book"
+  | "blame"
+  | "contrib"
+  | "total_score"
+  | "meta"
+  | "comments"
+  | "measure_types"
+  | "score_by_type";
+
+async function loadCourse(id: string, action: ActionType | ActionType[]) {
+  //
 }
 
 function FocusCourse() {
   const currentCourse = useAppSelector(selectCurrentCourse);
-
 }
 
 export default function Courses() {
