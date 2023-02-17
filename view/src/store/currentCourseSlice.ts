@@ -6,13 +6,13 @@ type CurrentCourseState = string;
 const initialState: CurrentCourseState = "";
 
 const currentCourseSlice = createSlice({
-  name: "currentCourse",
-  initialState,
-  reducers: {
-    setCurrentCourse: (state, action: PayloadAction<string>) => {
-      return action.payload;
+    name: "currentCourse",
+    initialState,
+    reducers: {
+        setCurrentCourse: (state, action: PayloadAction<string>) => {
+            return action.payload;
+        },
     },
-  },
 });
 
 export const { setCurrentCourse } = currentCourseSlice.actions;

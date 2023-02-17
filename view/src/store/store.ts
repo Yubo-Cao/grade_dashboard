@@ -5,27 +5,27 @@ import rootReducer from "./rootReducer";
 import { RootState } from "./rootReducer";
 
 const store = configureStore({
-  reducer: rootReducer,
-  middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware({
-      serializableCheck: false,
+    reducer: rootReducer,
+    middleware: (getDefaultMiddleware) =>
+        getDefaultMiddleware({
+            serializableCheck: false,
+        }),
+    preloadedState: getFromLocalStorage("state", {
+        credential: {
+            username: "",
+            password: "",
+        },
+        config: {
+            weighted: false,
+            normalize: false,
+            notify: false,
+        },
+        currentCourse: "",
     }),
-  preloadedState: getFromLocalStorage("state", {
-    credential: {
-      username: "",
-      password: "",
-    },
-    config: {
-      weighted: false,
-      normalize: false,
-      notify: false,
-    },
-    currentCourse: "",
-  }),
 });
 
 store.subscribe(() => {
-  saveToLocalStorage("state", store.getState());
+    saveToLocalStorage("state", store.getState());
 });
 
 export default store;

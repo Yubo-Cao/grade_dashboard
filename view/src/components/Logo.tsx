@@ -1,9 +1,14 @@
 export type IconProps = {
-  size: number;
+    size: number;
 };
 
 export default function Logo({ size }: IconProps) {
-  return (
-    <img src="/favicon.png" alt="Better Gradebook" width={size} height={size} />
-  );
+    return (
+        <img
+            src="/favicon.png"
+            alt="Better Gradebook"
+            width={size}
+            height={size}
+        />
+    );
 }

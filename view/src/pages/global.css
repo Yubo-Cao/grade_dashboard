@@ -3,10 +3,10 @@
 @tailwind utilities;
 
 * {
-  font-family: "Inter", sans-serif;
+    font-family: "Inter", sans-serif;
 }
 
 .grid-flow {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
 }
