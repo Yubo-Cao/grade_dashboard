@@ -23,7 +23,7 @@ function FunctionComponent({
             )}
             onClick={onClick}
         >
-            <h2 className="font-black leading-8 text-3xl">
+            <h2 className="font-black leading-8 text-4xl">
                 {title}
                 <span className="transition-all">{`->`}</span>
             </h2>
@@ -46,7 +46,8 @@ function FunctionComponent({
 export default function Index() {
     return (
         <RootLayout>
-            <div className="text-center pt-8 lg:pt-16 flex flex-col items-center justify-center">
+            <div className="text-center flex flex-col h-full items-center gap-8 pb-8 sm:justify-between ">
+                <div className="hidden sm:block"></div>
                 <div>
                     <h1 className="text-slate-900 font-black text-6xl">
                         The Future of{" "}
@@ -54,16 +55,27 @@ export default function Index() {
                     </h1>
                     <p className="text-slate-600 text-2xl font-light leading-relaxed mt-4 max-w-4xl">
                         Better Gradebook is a free, open-source gradebook that
-                        helps <span className="sky-500">you</span>
+                        helps <span className="text-sky-500 font-medium">you </span>
                         check your grades, track your assignments, and stay on
                         top of your classes.
                     </p>
                 </div>
-                <div className="flex items-center justify-center">
+                <div className="flex items-center justify-center gap-4">
                     <FunctionComponent
                         title="Gradebook"
                         description="Check grade for each of your classes, analyze the weight of each
                     assignment and how they contributed to your grade."
+                        onClick={() => window.open("/courses", "_self")}
+                    />
+                    <FunctionComponent
+                        title="Analyze"
+                        description="Analyze your grades and see where is your weakness, strength, and record the historical trend of your grades."
+                        onClick={() => window.open("/analyze", "_self")}
+                    />
+                    <FunctionComponent
+                        title="Settings"
+                        description="Configure your gradebook, set your credentials, and customize your gradebook, and more."
+                        onClick={() => window.open("/settings", "_self")}
                     />
                 </div>
             </div>

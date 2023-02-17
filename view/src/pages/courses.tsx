@@ -84,6 +84,11 @@ async function loadCourse(id: string, action: ActionType | ActionType[]) {
 
 function FocusCourse() {
     const currentCourse = useAppSelector(selectCurrentCourse);
+    return (
+        <div className="fixed left-0 top-0 right-0 bottom-0 bg-slate-100">
+            
+        </div>
+    )
 }
 
 export default function Courses() {

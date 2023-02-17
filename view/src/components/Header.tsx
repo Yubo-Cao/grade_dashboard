@@ -7,10 +7,12 @@ export default function Header() {
     return (
         <header className="w-[100vw] px-8 md:px-12 lg:px-16">
             <div className="relative py-6 lg:py-8 flex items-center justify-between text-slate-700 font-semibold text-sm leading-6 dark:text-slate-200">
-                <div className="flex items-center gap-2">
-                    <Icon size={24} />
-                    <h1 className="text-2xl font-bold">Better Gradebook</h1>
-                </div>
+                <Link href="/">
+                    <div className="flex items-center gap-2">
+                        <Icon size={24} />
+                        <h1 className="text-2xl font-bold">Better Gradebook</h1>
+                    </div>
+                </Link>
                 {isMenuOpen && (
                     <div
                         className="fixed top-0 left-0 bottom-0 right-0 backdrop-blur-sm bg-slate-900/20"
@@ -22,7 +24,7 @@ export default function Header() {
                         className={
                             (isMenuOpen
                                 ? "fixed top-4 right-4 w-full max-w-xs bg-white rounded-lg shadow-lg p-6 text-base space-y-6 font-semibold" +
-                                  "text-slate-900 dark:bg-slate-800 dark:text-slate-400 dark:highlight-white/5"
+                                "text-slate-900 dark:bg-slate-800 dark:text-slate-400 dark:highlight-white/5"
                                 : "max-md:hidden") +
                             " flex flex-col md:static md:flex-row md:items-center gap-x-8"
                         }

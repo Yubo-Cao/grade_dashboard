@@ -40,6 +40,7 @@ def main():
         print("Keyboard interrupt, exiting...")
 
     shutdown.set()
+    time.sleep(1)
     assert (
         not view_thread.is_alive() or not server_thread.is_alive()
     ), "Failed to shutdown server"
