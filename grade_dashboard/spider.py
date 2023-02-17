@@ -174,10 +174,17 @@ async def resolve_course(
     match type:
         case "auto":
             if isinstance(course, int):
+                if course > 20:
+                    return resolve_course(s, course, "id")
                 course = (await courses(s))[course]
             elif isinstance(course, str):
                 course = first(
-                    (c for c in await courses() if course == str(c.get("id")))
+                    (
+                        c
+                        for c in await courses()
+                        if str(course)
+                        == str(c.get("params", {}).get("FocusArgs", {}).get("classID"))
+                    )
                 ) or first(
                     (
                         c
@@ -188,7 +195,14 @@ async def resolve_course(
         case "index":
             course = (await courses(s))[course]
         case "id":
-            course = first((c for c in await courses(s) if course == c.get("id")))
+            course = first(
+                (
+                    c
+                    for c in await courses(s)
+                    if str(course)
+                    == str(c.get("params", {}).get("FocusArgs", {}).get("classID"))
+                )
+            )
         case "name":
             course = first(
                 (

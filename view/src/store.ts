@@ -90,6 +90,10 @@ export const selectConfig = createSelector(
   (state: RootState) => state.config,
   (config) => config
 );
+export const selectCurrentCourse = createSelector(
+  (state: RootState) => state.currentCourse,
+  (currentCourse) => currentCourse
+);
 
 export default store;
 export type RootState = ReturnType<typeof store.getState>;
