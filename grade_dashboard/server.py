@@ -1,4 +1,6 @@
+import asyncio
 import json
+import threading
 from decimal import Decimal
 from io import StringIO
 from typing import Any
@@ -10,7 +12,6 @@ from plotly import graph_objects as go
 from .analyze import (
     get_blame,
     get_contrib,
-    get_grade_df,
     get_score_by_type,
     get_total_score,
     plot_blame,
@@ -183,8 +184,19 @@ async def handle_courses_plot(request: web.Request):
     )
 
 
-def run():
+def run(event: asyncio.Event | threading.Event):
     app = web.Application()
+
+    async def check_for_shutdown(app):
+        while True:
+            await asyncio.sleep(1)
+            if event.is_set():
+                await app.shutdown()
+
+    async def bootstrap(app):
+        asyncio.create_task(check_for_shutdown(app))
+
+    app.on_startup.append(bootstrap)
     app.on_shutdown.append(on_shutdown)
     app.add_routes(routes)
     web.run_app(app, port=65535)

@@ -1,9 +1,9 @@
-import RootLayout from "./layout";
 import CourseCard from "@/components/CourseCard";
-import Async from "react-async";
 import { selectCredential } from "@/store/credentialSlice";
-import { selectCurrentCourse } from "@/store/currentCourseSlice";
+import { selectCurrentCourse, setCurrentCourse } from "@/store/currentCourseSlice";
 import { useAppDispatch, useAppSelector } from "@/store/store";
+import Async from "react-async";
+import RootLayout from "./layout";
 
 const loadCourses = async (
   username: string | undefined,
