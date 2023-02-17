@@ -15,6 +15,7 @@ type StateType = {
   config: {
     weighted: boolean;
     normalize: boolean;
+    notify: boolean;
   };
   currentCourse: string;
 };
@@ -27,6 +28,7 @@ const initialState: StateType = {
   config: {
     weighted: false,
     normalize: false,
+    notify: false,
   },
   currentCourse: "",
 };
@@ -38,7 +40,7 @@ const slice = createSlice({
   reducers: {
     setCredential: (
       state,
-      action: PayloadAction<{ username: string; password: string }>
+      action: PayloadAction<StateType['credential']>
     ) => {
       state.credential = action.payload;
     },
@@ -47,7 +49,7 @@ const slice = createSlice({
     },
     configureGrade: (
       state,
-      action: PayloadAction<{ weighted: boolean; normalize: boolean }>
+      action: PayloadAction<StateType['config']>
     ) => {
       state.config = action.payload;
     },
