@@ -10,7 +10,7 @@ from yarl import URL
 
 from .constants import DASHBOARD_URL
 from .exception import SpiderIOException
-from .utils import cached, chunked, find, first, get_var, identifier, submit
+from grade_dashboard.utils import cached, chunked, find, first, get_var, identifier, submit
 
 multicached = cached(128)
 
@@ -96,7 +96,7 @@ async def grade_book(s: aiohttp.ClientSession):
 
 
 @multicached
-async def courses(s: aiohttp.ClientSession):
+async def courses(s: aiohttp.ClientSession) -> list[dict[str, Any]]:
     html = await grade_book(s)
     rows = chunked(
         html.xpath(
@@ -107,7 +107,7 @@ async def courses(s: aiohttp.ClientSession):
         ),
         2,
     )
-    email = re.compile(r"[\w\.-]+@[\w\.-]+")
+    email = re.compile(r"[\w.-]+@[\w.-]+")
     result = [
         dict(
             course=first(header.xpath("div[1]/button/text()")),
@@ -127,16 +127,16 @@ async def courses(s: aiohttp.ClientSession):
 
 
 async def load_control(
-    s: aiohttp.ClientSession,
-    control_name: str,
-    params: dict[str, Any],
+        s: aiohttp.ClientSession,
+        control_name: str,
+        params: dict[str, Any],
 ) -> dict:
     url = (await vue_base_url(s)) / "service" / "PXP2Communication.asmx" / "LoadControl"
     data = dict(request=dict(control=control_name, parameters=params))
     async with s.post(
-        url,
-        json=data,
-        headers={"X-Requested-With": "XMLHttpRequest"},
+            url,
+            json=data,
+            headers={"X-Requested-With": "XMLHttpRequest"},
     ) as r:
         if not r.ok:
             raise SpiderIOException(f'Failed to load "{control_name}"', r)
@@ -155,72 +155,61 @@ course_lock = asyncio.Lock()
 
 
 @asynccontextmanager
-async def course(s: aiohttp.ClientSession, course: dict[str, any] | int | str):
-    course = await resolve_course(s, course)
-    if not course:
+async def course(s: aiohttp.ClientSession, query: dict[str, any] | int | str):
+    query = await resolve_course(s, query)
+    if not query:
         raise ValueError("No course found")
     async with course_lock:
-        await load_course(s, course)
+        await load_course(s, query)
         yield
 
 
 async def resolve_course(
-    s: aiohttp.ClientSession,
-    course: dict[str, any] | int | str,
-    type: Literal["auto", "index", "id", "name"] = "auto",
-):
-    if isinstance(course, dict):
-        return course
-    match type:
+        s: aiohttp.ClientSession,
+        query: dict[str, any] | int | str,
+        query_type: Literal["auto", "index", "id", "name"] = "auto",
+) -> dict[str, any]:
+    if isinstance(query, dict):
+        return query
+    result = None
+    match query_type:
         case "auto":
-            if isinstance(course, int):
-                if course > 20:
-                    return resolve_course(s, course, "id")
-                course = (await courses(s))[course]
-            elif isinstance(course, str):
-                course = first(
-                    (
-                        c
-                        for c in await courses()
-                        if str(course)
-                        == str(c.get("params", {}).get("FocusArgs", {}).get("classID"))
-                    )
-                ) or first(
-                    (
-                        c
-                        for c in await courses(s)
-                        if course.lower() in c.get("course", "").lower()
-                    )
-                )
+            if isinstance(query, int):
+                if query > 20:
+                    return await resolve_course(s, query, "id")
+                result = (await courses(s))[query]
+            elif isinstance(query, str):
+                result = (await resolve_course(s, query, "id")) or (await resolve_course(s, query, "name"))
+            else:
+                raise ValueError(f"Unknown type {type(query)}")
         case "index":
-            course = (await courses(s))[course]
+            result = (await courses(s))[query]
         case "id":
-            course = first(
+            result = first(
                 (
                     c
                     for c in await courses(s)
-                    if str(course)
-                    == str(c.get("params", {}).get("FocusArgs", {}).get("classID"))
+                    if str(query) == str(c.get("params", {}).get("FocusArgs", {}).get("classID"))
                 )
             )
         case "name":
-            course = first(
+            result = first(
                 (
                     c
                     for c in await courses(s)
-                    if course.lower() in c.get("course").lower()
+                    if query.lower() in c.get("course").lower()
                 )
             )
         case _:
-            raise ValueError(f"Unknown type {type}")
-    if not course:
-        raise ValueError("No course found")
-    return course
+            raise ValueError(f"Unknown type {query_type}")
+    if not result:
+        raise ValueError(f"Course {query} not found")
+    return result
 
 
 async def call_api(s: aiohttp.ClientSession, action: str, data: dict[str, Any]) -> dict:
     url = (
-        (await vue_base_url(s)) / "api" / "GB" / "ClientSideData" / "Transfer"
+            (await vue_base_url(s)) / "api" / "GB" / "ClientSideData" / "Transfer"
     ).with_query(action=action)
     headers = {
         "CURRENT_WEB_PORTAL": "StudentVUE",
@@ -246,9 +235,9 @@ async def get_class_data(s: aiohttp.ClientSession):
 
 
 async def get_items(
-    s: aiohttp.ClientSession,
-    sort: str = "due_date",
-    group_by: Literal["Week", "Subject", "AssignmentType", "Unit", "Date"] = "Week",
+        s: aiohttp.ClientSession,
+        sort: str = "due_date",
+        group_by: Literal["Week", "Subject", "AssignmentType", "Unit", "Date"] = "Week",
 ):
     return await call_api(
         s,

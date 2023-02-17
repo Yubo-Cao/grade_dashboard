@@ -19,15 +19,15 @@ from .analyze import (
     plot_score_by_type,
     plot_scores,
 )
-from .exception import LoginFailedException
+from .spider.exception import LoginFailedException
 from .parse import (
     parse_class_data,
     parse_courses_data,
     parse_gradebook_items,
     parse_items,
 )
-from .session_manager import manager
-from .spider import courses, get_course_data, get_courses_data, resolve_course
+from .spider.session_manager import manager
+from .spider.spider import courses, get_course_data, get_courses_data, resolve_course
 
 routes = web.RouteTableDef()
 

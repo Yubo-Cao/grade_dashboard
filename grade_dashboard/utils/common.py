@@ -1,8 +1,8 @@
 import json
 import re
+from collections.abc import Iterable, Mapping
+from typing import Any, cast, TypeVar
 from typing import Callable
-from typing import Any, cast, TypeVar, ParamSpec
-from collections.abc import Iterable
 
 E = TypeVar("E")
 D = TypeVar("D")
@@ -18,9 +18,9 @@ def identifier(s: str) -> str:
 
 
 def find(
-    iterable: dict[str, E] | list[tuple[str, E]],
-    s: str,
-    default: E | None = None,
+        iterable: dict[str, E] | list[tuple[str, E]],
+        s: str,
+        default: E | None = None,
 ) -> E | None:
     if isinstance(iterable, dict):
         return iterable.get(s)
@@ -28,14 +28,14 @@ def find(
 
 
 def to_matched(
-    s: str,
-    start: int = 0,
-    end: int = -1,
-    patterns: list[tuple[str, str]] = [
-        ("(", ")"),
-        ("[", "]"),
-        ("{", "}"),
-    ],
+        s: str,
+        start: int = 0,
+        end: int = -1,
+        patterns: tuple[tuple[str, str]] = (
+                ("(", ")"),
+                ("[", "]"),
+                ("{", "}"),
+        ),
 ) -> int:
     if end == -1:
         end = len(s)
@@ -68,15 +68,15 @@ def get_var(var_name: str, script: str) -> Any:
         raise ValueError(f"Cannot find {var_name}")
     st = match.end()
     ed = to_matched(script, st)
-    data = json.loads(script[st : ed + 1])
+    data = json.loads(script[st: ed + 1])
     return data
 
 
 def extract_dict(
-    dct: dict[str, Any] | list[tuple[str, Any]],
-    fields: list[str],
-    tfms: Callable[[str], str] = lambda x: x,
-    default: E | None = None,
+        dct: dict[str, Any] | list[tuple[str, Any]],
+        fields: list[str],
+        tfms: Callable[[str], str] = lambda x: x,
+        default: E | None = None,
 ) -> dict[str, Any]:
     result = {}
     for field in fields:
@@ -85,7 +85,7 @@ def extract_dict(
 
 
 def chunked(iterable: list[E], n: int) -> Iterable[list[E]]:
-    return (iterable[i : i + n] for i in range(0, len(iterable), n))
+    return (iterable[i: i + n] for i in range(0, len(iterable), n))
 
 
 def flatten(iterable: Iterable[Iterable[E]]) -> Iterable[E]:
@@ -99,3 +99,13 @@ TT = TypeVar("TT")
 
 def compose(f: Callable[[FT], ST], g: Callable[[ST], TT]) -> Callable[[FT], TT]:
     return lambda x: g(f(x))
+
+
+def strip(s: str | Iterable[str] | Mapping[str, str]) -> str | Iterable[str] | Mapping[str, str]:
+    if isinstance(s, str):
+        return s.strip()
+    if isinstance(s, Iterable):
+        return [strip(x) for x in s]
+    if isinstance(s, Mapping):
+        return {k: strip(v) for k, v in s.items()}
+    raise TypeError(f"Cannot strip {s}")
