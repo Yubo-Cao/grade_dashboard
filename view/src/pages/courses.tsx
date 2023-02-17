@@ -66,9 +66,13 @@ function CourseSelection() {
   );
 }
 
+async function loadCourse(id: string, action: "grade_book" | "blame" | "contrib" | "total_score" | "meta" | "comments" | "measure_types" | "score_by_type") {
+  
+}
+
 function FocusCourse() {
   const currentCourse = useAppSelector(selectCurrentCourse);
-        
+
 }
 
 export default function Courses() {
