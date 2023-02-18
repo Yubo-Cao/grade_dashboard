@@ -1,10 +1,10 @@
 import re
 from datetime import datetime
 from decimal import Decimal
-from typing import TypedDict, NotRequired, Any
+from typing import TypedDict, NotRequired
 
 from session_manager import manager
-from .spider import courses
+from .spider import courses, get_course_data
 
 
 class Course(TypedDict):
@@ -108,7 +108,7 @@ class GradeBookItem(TypedDict):
     """
 
     name: str
-    grade: Decimal
+    points: Decimal
     due_date: datetime
     is_for_grade: bool
     measure_type: MeasureType
@@ -116,6 +116,7 @@ class GradeBookItem(TypedDict):
     # the following are present if is_for_grade is True
     blame: NotRequired[Decimal]  # the percentage of this assignment contributed to the grade
     contrib: NotRequired[Decimal]  # the actual number of points contributed to the grade
+    grade: NotRequired[Decimal]  # the grade for this assignment
 
 
 async def get_grade_book_items(
@@ -140,5 +141,6 @@ async def get_grade_book_items(
         the grade book items
     """
 
-    c = await get_course(username, password, course_id, course_name, course_index)
-    s = await manager.get_session(username, password)
+    course = await get_course(username, password, course_id, course_name, course_index)
+    session = await manager.get_session(username, password)
+    class_data, items_data = await get_course_data(session, course)
