@@ -3,6 +3,8 @@ import re
 from collections.abc import Iterable, Mapping
 from typing import Any, cast, TypeVar
 from typing import Callable
+from decimal import Decimal, DecimalException
+from .constants import DECIMAL_CONTEXT
 
 E = TypeVar("E")
 D = TypeVar("D")
@@ -68,7 +70,7 @@ def get_var(var_name: str, script: str) -> Any:
         raise ValueError(f"Cannot find {var_name}")
     st = match.end()
     ed = to_matched(script, st)
-    data = json.loads(script[st : ed + 1])
+    data = json.loads(script[st: ed + 1])
     return data
 
 
@@ -85,7 +87,7 @@ def extract_dict(
 
 
 def chunked(iterable: list[E], n: int) -> Iterable[list[E]]:
-    return (iterable[i : i + n] for i in range(0, len(iterable), n))
+    return (iterable[i: i + n] for i in range(0, len(iterable), n))
 
 
 def flatten(iterable: Iterable[Iterable[E]]) -> Iterable[E]:
@@ -111,3 +113,61 @@ def strip(
     if isinstance(s, Mapping):
         return {k: strip(v) for k, v in s.items()}
     raise TypeError(f"Cannot strip {s}")
+
+
+def get(dct: dict[str, ...], key: str, default: D | None = None) -> D | None:
+    """
+    Get value from dict by key.
+
+    Args:
+        dct: the dict to get value from
+        key: the key to get value. Use "." to access nested dict and "*" to aggregate values.
+        default: the default value to return if key not found
+
+    Returns:
+        the value of the key or default value if key not found
+    """
+    keys = key.split(".")
+    for i in range(len(keys)):
+        key = keys[i]
+        if key == "*":
+            return [get(dct, ".".join(keys[i + 1:]), default) for dct in dct.values()]
+        dct = dct.get(key)
+        if dct is None:
+            return default
+    return dct
+
+
+def rename(dct: dict, mapper: Callable[[str], str] = None, **kwargs) -> dict:
+    """
+    Rename keys in a dict. If both mapper and kwargs are provided, mapper will be applied first.
+
+    Args:
+        dct: the dict to rename keys
+        mapper: the function to map keys
+        **kwargs: or, you can use keyword arguments to rename keys
+
+    Returns:
+        the dict with renamed keys
+    """
+
+    result = {kwargs.get(k, k): v for k, v in dct.items()}
+    if mapper:
+        result = {mapper(k): v for k, v in result.items()}
+    return result
+
+
+def to_decimal(v) -> Decimal:
+    """
+    Convert value to Decimal, ignore all exceptions and return NaN if failed.
+
+    Args:
+        v: a value to convert
+
+    Returns:
+        the Decimal value
+    """
+    try:
+        return Decimal(v, DECIMAL_CONTEXT)
+    except DecimalException:
+        return Decimal("NaN", DECIMAL_CONTEXT)
