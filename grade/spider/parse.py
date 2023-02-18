@@ -1,11 +1,11 @@
 import itertools as it
 from datetime import datetime
-
 from functools import cache
+
 import pandas as pd
 
-from grade.spider import MeasureType, Comment, GradeBookItem
 from grade.utils import to_decimal, first, get, identifier
+from .model import MeasureType, Comment, GradeBookItem
 
 
 def parse_measure_types(class_data: dict[str, any]) -> list[MeasureType]:

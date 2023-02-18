@@ -41,3 +41,6 @@ next-env.d.ts
 # config
 .vscode
 .idea
+
+# secret
+secret.json

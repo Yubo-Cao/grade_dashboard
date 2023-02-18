@@ -1,23 +1,9 @@
 import re
-from datetime import datetime
-from decimal import Decimal
-from typing import TypedDict, NotRequired
 
+from .model import GradeBookItem, Course
+from .parse import parse_grade_book_items
 from .session_manager import manager
-from .spider import courses, get_course_data
-
-
-class Course(TypedDict):
-    """
-    A course.
-    """
-
-    id: int
-    name: str
-    teacher: str
-    grade: Decimal
-    email: str
-    period: str
+from .spider import courses, get_course_data, resolve_course
 
 
 async def get_courses(username: str, password: str) -> list[Course]:
@@ -35,7 +21,7 @@ async def get_courses(username: str, password: str) -> list[Course]:
     s = await manager.get_session(username, password)
     cs = await courses(s)
     course_re = re.compile(r"(?P<period>\d+):\s*(?P<name>.+?)\s*$")
-    matches = [course_re.match(c) for c in cs]
+    matches = [course_re.match(c.get("course")) for c in cs]
     return [
         Course(
             id=c.get("id"),
@@ -82,54 +68,6 @@ async def get_course(
     raise ValueError("No course specified.")
 
 
-class MeasureType(TypedDict):
-    """
-    A measure type.
-    """
-
-    id: int
-    name: str
-    weight: Decimal
-    drop_score: Decimal
-
-
-class Comment(TypedDict):
-    """
-    A comment.
-    """
-
-    code: str
-    content: str
-    assignment_value: Decimal
-    penalty_percent: Decimal
-
-
-class GradeBookItem(TypedDict):
-    """
-    A grade book item.
-    """
-
-    id: int
-    name: str
-    points: Decimal
-    max_points: Decimal
-    score: Decimal
-    max_score: Decimal
-    due_date: datetime
-    is_for_grade: bool
-    is_hidden: bool
-    is_missing: bool
-    measure_type: MeasureType
-    comment: Comment
-    # the following are present if is_for_grade is True
-    blame: NotRequired[
-        Decimal
-    ]  # the percentage of this assignment contributed to the grade
-    contrib: NotRequired[
-        Decimal
-    ]  # the actual number of points contributed to the grade
-
-
 async def get_grade_book_items(
     username: str,
     password: str,
@@ -154,4 +92,11 @@ async def get_grade_book_items(
 
     course = await get_course(username, password, course_id, course_name, course_index)
     session = await manager.get_session(username, password)
-    class_data, items_data = await get_course_data(session, course)
+    class_data, items_data = await get_course_data(
+        session,
+        await resolve_course(session, query=course["id"], query_type="id"),
+    )
+    return parse_grade_book_items(
+        class_data,
+        items_data,
+    )
