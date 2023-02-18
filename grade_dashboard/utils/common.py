@@ -173,5 +173,5 @@ def to_decimal(v) -> Decimal:
     """
     try:
         return Decimal(v, DECIMAL_CONTEXT)
-    except DecimalException:
+    except (DecimalException, TypeError):
         return Decimal("NaN", DECIMAL_CONTEXT)

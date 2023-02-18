@@ -109,6 +109,7 @@ class GradeBookItem(TypedDict):
     A grade book item.
     """
 
+    id: int
     name: str
     points: Decimal
     max_points: Decimal

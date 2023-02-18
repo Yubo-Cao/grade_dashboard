@@ -69,6 +69,7 @@ def parse_grade_book_items(
             comment["content"] = series.comment_text
         measure_type = get_measure_type_by_id(series.measure_type_id)
         return GradeBookItem(
+            id=series.grade_book_id,
             name=series.title,
             points=to_decimal(series.points),
             max_points=to_decimal(series.max_value),
