@@ -12,4 +12,8 @@ __all__ = [
     "get_course",
     "get_courses",
     "get_grade_book_items",
+    "Course",
+    "GradeBookItem",
+    "Comment",
+    "MeasureType",
 ]
