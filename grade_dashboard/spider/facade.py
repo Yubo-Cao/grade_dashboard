@@ -11,6 +11,7 @@ class Course(TypedDict):
     """
     A course.
     """
+
     id: int
     name: str
     teacher: str
@@ -58,7 +59,7 @@ async def get_course(
 ) -> Course:
     """
     Get the course for the specified user.
-     
+
     Args:
         username: the username of the user
         password: the password of the user
@@ -66,7 +67,7 @@ async def get_course(
             course_id: the id of the course
             course_name: the name of the course
             course_index: the index of the course in the list of courses
- 
+
     Returns:
         the course
     """
@@ -114,8 +115,12 @@ class GradeBookItem(TypedDict):
     measure_type: MeasureType
     comment: Comment
     # the following are present if is_for_grade is True
-    blame: NotRequired[Decimal]  # the percentage of this assignment contributed to the grade
-    contrib: NotRequired[Decimal]  # the actual number of points contributed to the grade
+    blame: NotRequired[
+        Decimal
+    ]  # the percentage of this assignment contributed to the grade
+    contrib: NotRequired[
+        Decimal
+    ]  # the actual number of points contributed to the grade
     grade: NotRequired[Decimal]  # the grade for this assignment
 
 

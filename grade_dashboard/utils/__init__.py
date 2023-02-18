@@ -9,7 +9,7 @@ from .common import (
     flatten,
     chunked,
     compose,
-    strip
+    strip,
 )
 from .submit import submit
 from .retry import retry

@@ -6,7 +6,9 @@ import pandas as pd
 from grade_dashboard.utils import flatten, identifier
 
 
-def parse_class_data(cd: dict[str, any]) -> TypedDict(
+def parse_class_data(
+    cd: dict[str, any]
+) -> TypedDict(
     "ClassData",
     {
         "meta": dict[str, Any],
@@ -91,13 +93,7 @@ def parse_items(items: dict[str, Any]) -> pd.DataFrame:
 def parse_grade_book_items(
     class_data: dict[str, Any],
     items: dict[str, Any],
-) -> TypedDict(
-    "GradeBookItems",
-    {
-        "meta": dict[str, Any],
-        "data": pd.DataFrame,
-    },
-):
+) -> TypedDict("GradeBookItems", {"meta": dict[str, Any], "data": pd.DataFrame,},):
     """Parse grade book items from the response of the grade book API.
 
     Args:

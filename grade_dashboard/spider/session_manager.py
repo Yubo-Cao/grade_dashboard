@@ -28,13 +28,13 @@ class SessionManager:
     @staticmethod
     async def login(password: str, username: str, session: aiohttp.ClientSession):
         async with session.post(
-                DASHBOARD_URL / "pkmslogin.form",
-                data={
-                    "forgotpass": "p0/IZ7_3AM0I440J8GF30AIL6LB453082=CZ6_3AM0I440J8GF30AIL6LB4530G6=LA0=OC=Eaction!ResetPasswd==/#Z7_3AM0I440J8GF30AIL6LB453082",
-                    "login-form-type": "pwd",
-                    "username": username,
-                    "password": password,
-                },
+            DASHBOARD_URL / "pkmslogin.form",
+            data={
+                "forgotpass": "p0/IZ7_3AM0I440J8GF30AIL6LB453082=CZ6_3AM0I440J8GF30AIL6LB4530G6=LA0=OC=Eaction!ResetPasswd==/#Z7_3AM0I440J8GF30AIL6LB453082",
+                "login-form-type": "pwd",
+                "username": username,
+                "password": password,
+            },
         ) as r:
             if not r.ok or "error" in (await r.text()):
                 await session.close()

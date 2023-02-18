@@ -10,7 +10,15 @@ from yarl import URL
 
 from .constants import DASHBOARD_URL
 from .exception import SpiderIOException
-from grade_dashboard.utils import cached, chunked, find, first, get_var, identifier, submit
+from grade_dashboard.utils import (
+    cached,
+    chunked,
+    find,
+    first,
+    get_var,
+    identifier,
+    submit,
+)
 
 multicached = cached(128)
 
@@ -178,7 +186,9 @@ async def resolve_course(
                     return await resolve_course(s, query, "id")
                 result = (await courses(s))[query]
             elif isinstance(query, str):
-                result = (await resolve_course(s, query, "id")) or (await resolve_course(s, query, "name"))
+                result = (await resolve_course(s, query, "id")) or (
+                    await resolve_course(s, query, "name")
+                )
             else:
                 raise ValueError(f"Unknown type {type(query)}")
         case "index":
@@ -188,7 +198,8 @@ async def resolve_course(
                 (
                     c
                     for c in await courses(s)
-                    if str(query) == str(c.get("params", {}).get("FocusArgs", {}).get("classID"))
+                    if str(query)
+                    == str(c.get("params", {}).get("FocusArgs", {}).get("classID"))
                 )
             )
         case "name":
