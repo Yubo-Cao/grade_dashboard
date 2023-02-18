@@ -1,150 +1,85 @@
-from decimal import Decimal
-from typing import Any, TypedDict
+import itertools as it
+from datetime import datetime
 
+from functools import cache
 import pandas as pd
 
-from grade_dashboard.utils import flatten, identifier
+from grade_dashboard.spider import MeasureType, Comment, GradeBookItem
+from grade_dashboard.utils import to_decimal, first, get, identifier
 
 
-def parse_class_data(
-    cd: dict[str, any]
-) -> TypedDict(
-    "ClassData",
-    {
-        "meta": dict[str, Any],
-        "measure_types": pd.DataFrame,
-        "assignments": pd.DataFrame,
-        "comments": pd.DataFrame,
-    },
-):
-    """
-    Parse class data from the response of the grade book API.
-
-    Args:
-        cd: class data dictionary
-
-    Returns:
-        parsed class data
-    """
-    meta = dict(
-        class_id=cd.get("classId"),
-        name=cd.get("className"),
-        rigor_points=cd.get("rigorPoints"),
-    )
-    # measure types
-    mt_df = (
-        pd.DataFrame(cd.get("measureTypes"))
-        .set_index("id")
-        .rename(identifier, axis="columns")[["name", "drop_scores", "weight"]]
-    )
-    mt_df = mt_df[mt_df.weight > 0]
-    # assignments
-    as_df = (
-        pd.DataFrame(cd.get("assignments"))
-        .rename(identifier, axis="columns")
-        .set_index("grade_book_id")
-    )[
-        [
-            "measure_type_id",
-            "score",
-            "max_value",
-            "max_score",
-            "due_date",
-            "is_for_grading",
-            "comment_code",
-        ]
+def parse_measure_types(class_data: dict[str, any]) -> list[MeasureType]:
+    measure_types = class_data.get("measureTypes", [])
+    return [
+        MeasureType(
+            id=mt.get("id"),
+            name=mt.get("name"),
+            weight=to_decimal(mt.get("weight")),
+            drop_score=to_decimal(mt.get("dropScore")),
+        )
+        for mt in measure_types
     ]
-    as_df.due_date = pd.to_datetime(as_df.due_date)
-    cols = ["score", "max_score", "max_value"]
-    as_df[cols] = as_df[cols].astype(float)
-    # comments
-    co_df = (
-        pd.DataFrame(cd.get("comments"))
-        .rename(identifier, axis="columns")
-        .set_index("comment_code")[["comment", "assignment_value", "penalty_pct"]]
-    )
-    co_df.assignment_value = co_df.assignment_value.astype(float)
-    co_df.penalty_pct = co_df.penalty_pct.astype(float)
-    return dict(meta=meta, measure_types=mt_df, assignments=as_df, comments=co_df)
 
 
-def parse_items(items: dict[str, Any]) -> pd.DataFrame:
-    """Parse items from the response of the grade book API.
-
-    Args:
-        items: items dictionary
-
-    Returns:
-        parsed items
-    """
-    items = items["responseData"]["data"]
-    df = pd.DataFrame(flatten(e.get("items", []) for e in items)).rename(
-        identifier,
-        axis="columns",
-    )[
-        ["item_id", "title", "assignment_type", "due_date", "points"]
-    ]  # grade_mark
-    df.points = pd.to_numeric(df.points, errors="coerce").astype(float)
-    df.due_date = pd.to_datetime(df.due_date)
-    df.set_index("item_id", inplace=True)
-    return df
+def parse_comments(class_data: dict[str, any]) -> list[Comment]:
+    comments = class_data.get("comments", [])
+    return [
+        Comment(
+            code=c.get("commentCode"),
+            content=c.get("comment"),
+            assignment_value=to_decimal(c.get("assignmentValue")),
+            penalty_percent=to_decimal(c.get("penaltyPct")),
+        )
+        for c in comments
+    ]
 
 
 def parse_grade_book_items(
-    class_data: dict[str, Any],
-    items: dict[str, Any],
-) -> TypedDict("GradeBookItems", {"meta": dict[str, Any], "data": pd.DataFrame,},):
-    """Parse grade book items from the response of the grade book API.
-
-    Args:
-        class_data: the class data dictionary
-        items: the items dictionary
-
-    Returns:
-        parsed grade book items
-    """
-    class_data = parse_class_data(class_data)
-    items = parse_items(items)
-    df: pd.DataFrame = (
-        class_data["measure_types"]
-        .merge(class_data["assignments"], left_index=True, right_on="measure_type_id")
-        .join(items["title"])
-        .join(class_data["comments"], on="comment_code", how="left")
+    class_data: dict[str, any],
+    items_data: dict[str, any],
+) -> list[GradeBookItem]:
+    items_df = pd.DataFrame(
+        list(it.chain(*get(items_data, "responseData.data.*.items")))
+    ).rename(identifier, axis="columns")
+    assignments_df = pd.DataFrame(class_data.get("assignments", [])).rename(
+        identifier, axis="columns"
     )
-    df = df.rename(
-        columns={
-            "name": "measure_type",
-            "title": "name",
-            "assignment_value": "comment_assignment_value",
-        }
-    ).apply(
-        lambda x: x.apply(lambda e: Decimal(e))
-        if pd.api.types.is_numeric_dtype(x)
-        else x,
-        axis="rows",
+    df = pd.merge(
+        items_df,
+        assignments_df,
+        left_on="item_id",
+        right_on="grade_book_id",
+        validate="one_to_one",
     )
-    adjusted_score = df.comment_assignment_value.fillna(
-        df.score
-    ) - df.drop_scores.fillna(Decimal(0.0))
-    adjusted_score = (
-        adjusted_score
-        / df.max_score.fillna(Decimal(100.0))
-        * 100
-        * (1 - df.penalty_pct.fillna(Decimal(0.0)) / 100)
-    )
-    df.score = adjusted_score
-    return {
-        "meta": class_data["meta"],
-        "data": df.drop(
-            columns=[
-                "drop_scores",
-                "max_value",
-                "max_score",
-                "comment_assignment_value",
-            ]
-        )[~pd.isna(df.name)],
-    }
+    comments = parse_comments(class_data)
 
+    @cache
+    def get_comment_by_code(code) -> Comment:
+        return first(filter(lambda c: c.get("code") == code, comments))
 
-def parse_courses_data(result: list[tuple[dict, dict]]):
-    return [parse_grade_book_items(*e) for e in result]
+    measure_types = parse_measure_types(class_data)
+
+    @cache
+    def get_measure_type_by_id(id) -> MeasureType:
+        return first(filter(lambda mt: mt.get("id") == id, measure_types))
+
+    def transform(series: pd.Series) -> GradeBookItem:
+        comment = get_comment_by_code(series.comment_code)
+        if series.comment_text:
+            comment["content"] = series.comment_text
+        measure_type = get_measure_type_by_id(series.measure_type_id)
+        return GradeBookItem(
+            name=series.title,
+            points=to_decimal(series.points),
+            max_points=to_decimal(series.max_value),
+            score=to_decimal(series.score),
+            max_score=to_decimal(series.max_score),
+            due_date=datetime.fromisoformat(series.due_date_x),
+            is_for_grade=series.is_for_grading,
+            is_hidden=series.hide_in_portal,
+            is_missing=series.is_grade_book_missing_mark,
+            measure_type=measure_type,
+            comment=comment,
+        )
+
+    return df.apply(transform, axis="columns").tolist()

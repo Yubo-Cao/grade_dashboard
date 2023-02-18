@@ -115,7 +115,7 @@ def strip(
     raise TypeError(f"Cannot strip {s}")
 
 
-def get(dct: dict[str, ...], key: str, default: D | None = None) -> D | None:
+def get(dct: dict[str, Any], key: str, default: D | None = None) -> D | None:
     """
     Get value from dict by key.
 
@@ -127,15 +127,19 @@ def get(dct: dict[str, ...], key: str, default: D | None = None) -> D | None:
     Returns:
         the value of the key or default value if key not found
     """
+    result: Any = dct
     keys = key.split(".")
     for i in range(len(keys)):
         key = keys[i]
         if key == "*":
-            return [get(dct, ".".join(keys[i + 1:]), default) for dct in dct.values()]
-        dct = dct.get(key)
-        if dct is None:
+            return [
+                get(dct, ".".join(keys[i + 1:]), default)
+                for dct in (result.values() if isinstance(result, dict) else result)
+            ]
+        result = getattr(result, "get", lambda *args, **kwargs: None)(key)
+        if result is None:
             return default
-    return dct
+    return result
 
 
 def rename(dct: dict, mapper: Callable[[str], str] = None, **kwargs) -> dict:

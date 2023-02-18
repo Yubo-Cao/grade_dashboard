@@ -3,7 +3,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import TypedDict, NotRequired
 
-from session_manager import manager
+from .session_manager import manager
 from .spider import courses, get_course_data
 
 
@@ -90,6 +90,7 @@ class MeasureType(TypedDict):
     id: int
     name: str
     weight: Decimal
+    drop_score: Decimal
 
 
 class Comment(TypedDict):
@@ -110,8 +111,13 @@ class GradeBookItem(TypedDict):
 
     name: str
     points: Decimal
+    max_points: Decimal
+    score: Decimal
+    max_score: Decimal
     due_date: datetime
     is_for_grade: bool
+    is_hidden: bool
+    is_missing: bool
     measure_type: MeasureType
     comment: Comment
     # the following are present if is_for_grade is True
@@ -121,7 +127,6 @@ class GradeBookItem(TypedDict):
     contrib: NotRequired[
         Decimal
     ]  # the actual number of points contributed to the grade
-    grade: NotRequired[Decimal]  # the grade for this assignment
 
 
 async def get_grade_book_items(
