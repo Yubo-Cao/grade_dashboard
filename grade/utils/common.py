@@ -4,6 +4,7 @@ from collections.abc import Iterable, Mapping
 from typing import Any, cast, TypeVar
 from typing import Callable
 from decimal import Decimal, DecimalException
+
 from .constants import DECIMAL_CONTEXT
 
 E = TypeVar("E")
