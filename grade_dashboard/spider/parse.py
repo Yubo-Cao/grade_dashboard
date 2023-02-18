@@ -1,23 +1,28 @@
 from decimal import Decimal
-from typing import Any
+from typing import Any, TypedDict
 
 import pandas as pd
 
-from .utils import flatten, identifier
+from grade_dashboard.utils import flatten, identifier
 
 
-def parse_class_data(cd: dict[str, any]) -> dict[str, dict | pd.DataFrame]:
-    """Parse class data from the response of the gradebook API.
+def parse_class_data(cd: dict[str, any]) -> TypedDict(
+    "ClassData",
+    {
+        "meta": dict[str, Any],
+        "measure_types": pd.DataFrame,
+        "assignments": pd.DataFrame,
+        "comments": pd.DataFrame,
+    },
+):
+    """
+    Parse class data from the response of the grade book API.
 
     Args:
-        cd (dict[str, any]): class data dictionary
+        cd: class data dictionary
 
     Returns:
-        dict[str, dict | pd.DataFrame]: parsed class data
-        - meta: class metadata
-        - measure_types: measure types
-        - assignments: assignments
-        - comments: comments
+        parsed class data
     """
     meta = dict(
         class_id=cd.get("classId"),
@@ -62,13 +67,13 @@ def parse_class_data(cd: dict[str, any]) -> dict[str, dict | pd.DataFrame]:
 
 
 def parse_items(items: dict[str, Any]) -> pd.DataFrame:
-    """Parse items from the response of the gradebook API.
+    """Parse items from the response of the grade book API.
 
     Args:
-        items (dict[str, Any]): items dictionary
+        items: items dictionary
 
     Returns:
-        pd.DataFrame: parsed items
+        parsed items
     """
     items = items["responseData"]["data"]
     df = pd.DataFrame(flatten(e.get("items", []) for e in items)).rename(
@@ -83,18 +88,24 @@ def parse_items(items: dict[str, Any]) -> pd.DataFrame:
     return df
 
 
-def parse_gradebook_items(
+def parse_grade_book_items(
     class_data: dict[str, Any],
     items: dict[str, Any],
-) -> dict[str, pd.DataFrame | dict[str, str]]:
-    """Parse gradebook items from the response of the gradebook API.
+) -> TypedDict(
+    "GradeBookItems",
+    {
+        "meta": dict[str, Any],
+        "data": pd.DataFrame,
+    },
+):
+    """Parse grade book items from the response of the grade book API.
 
     Args:
-        class_data (dict[str, Any]): the class data dictionary
-        items (dict[str, Any]): the items dictionary
+        class_data: the class data dictionary
+        items: the items dictionary
 
     Returns:
-        dict[str, pd.DataFrame | dict[str, str]]: parsed gradebook items
+        parsed grade book items
     """
     class_data = parse_class_data(class_data)
     items = parse_items(items)
@@ -139,7 +150,5 @@ def parse_gradebook_items(
     }
 
 
-def parse_courses_data(
-    result: list[tuple[dict, dict]]
-) -> list[dict[str, dict[str, str] | pd.DataFrame]]:
-    return [parse_gradebook_items(*e) for e in result]
+def parse_courses_data(result: list[tuple[dict, dict]]):
+    return [parse_grade_book_items(*e) for e in result]

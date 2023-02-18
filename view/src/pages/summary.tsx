@@ -49,8 +49,9 @@ function AssignmentItem({
         </Tooltip>
     ) : (
         <p
-            className={`font-black text-6xl ${grading ? getScoreStyle(score!) : "text-slate-500"
-                }`}
+            className={`font-black text-6xl ${
+                grading ? getScoreStyle(score!) : "text-slate-500"
+            }`}
         >
             {score}
         </p>

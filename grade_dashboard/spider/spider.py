@@ -127,16 +127,16 @@ async def courses(s: aiohttp.ClientSession) -> list[dict[str, Any]]:
 
 
 async def load_control(
-        s: aiohttp.ClientSession,
-        control_name: str,
-        params: dict[str, Any],
+    s: aiohttp.ClientSession,
+    control_name: str,
+    params: dict[str, Any],
 ) -> dict:
     url = (await vue_base_url(s)) / "service" / "PXP2Communication.asmx" / "LoadControl"
     data = dict(request=dict(control=control_name, parameters=params))
     async with s.post(
-            url,
-            json=data,
-            headers={"X-Requested-With": "XMLHttpRequest"},
+        url,
+        json=data,
+        headers={"X-Requested-With": "XMLHttpRequest"},
     ) as r:
         if not r.ok:
             raise SpiderIOException(f'Failed to load "{control_name}"', r)
@@ -165,13 +165,12 @@ async def course(s: aiohttp.ClientSession, query: dict[str, any] | int | str):
 
 
 async def resolve_course(
-        s: aiohttp.ClientSession,
-        query: dict[str, any] | int | str,
-        query_type: Literal["auto", "index", "id", "name"] = "auto",
+    s: aiohttp.ClientSession,
+    query: dict[str, any] | int | str,
+    query_type: Literal["auto", "index", "id", "name"] = "auto",
 ) -> dict[str, any]:
     if isinstance(query, dict):
         return query
-    result = None
     match query_type:
         case "auto":
             if isinstance(query, int):
@@ -209,7 +208,7 @@ async def resolve_course(
 
 async def call_api(s: aiohttp.ClientSession, action: str, data: dict[str, Any]) -> dict:
     url = (
-            (await vue_base_url(s)) / "api" / "GB" / "ClientSideData" / "Transfer"
+        (await vue_base_url(s)) / "api" / "GB" / "ClientSideData" / "Transfer"
     ).with_query(action=action)
     headers = {
         "CURRENT_WEB_PORTAL": "StudentVUE",
@@ -235,9 +234,9 @@ async def get_class_data(s: aiohttp.ClientSession):
 
 
 async def get_items(
-        s: aiohttp.ClientSession,
-        sort: str = "due_date",
-        group_by: Literal["Week", "Subject", "AssignmentType", "Unit", "Date"] = "Week",
+    s: aiohttp.ClientSession,
+    sort: str = "due_date",
+    group_by: Literal["Week", "Subject", "AssignmentType", "Unit", "Date"] = "Week",
 ):
     return await call_api(
         s,

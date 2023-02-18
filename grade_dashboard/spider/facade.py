@@ -1,11 +1,16 @@
+import re
+from datetime import datetime
 from decimal import Decimal
-from typing import TypedDict
+from typing import TypedDict, NotRequired, Any
+
 from session_manager import manager
 from .spider import courses
-import re
 
 
 class Course(TypedDict):
+    """
+    A course.
+    """
     id: int
     name: str
     teacher: str
@@ -18,10 +23,12 @@ async def get_courses(username: str, password: str) -> list[Course]:
     """
     Get the courses for the specified user.
 
-    :param username: The username of the user.
-    :param password: The password of the user.
+    Args:
+        username: the username of the user
+        password: the password of the user
 
-    :return: A list of courses.
+    Returns:
+        the courses
     """
 
     s = await manager.get_session(username, password)
@@ -40,3 +47,98 @@ async def get_courses(username: str, password: str) -> list[Course]:
         for c, m in zip(cs, matches)
         if m
     ]
+
+
+async def get_course(
+    username: str,
+    password: str,
+    course_id: int | str = -1,
+    course_name: str = "",
+    course_index: int = -1,
+) -> Course:
+    """
+    Get the course for the specified user.
+     
+    Args:
+        username: the username of the user
+        password: the password of the user
+        and one of the following:
+            course_id: the id of the course
+            course_name: the name of the course
+            course_index: the index of the course in the list of courses
+ 
+    Returns:
+        the course
+    """
+
+    cs = await get_courses(username, password)
+    if course_id != -1:
+        return next(c for c in cs if str(c.get("id")) == str(course_id))
+    if course_name:
+        return next(c for c in cs if c.get("name") == course_name)
+    if course_index != -1:
+        return cs[course_index]
+    raise ValueError("No course specified.")
+
+
+class MeasureType(TypedDict):
+    """
+    A measure type.
+    """
+
+    id: int
+    name: str
+    weight: Decimal
+
+
+class Comment(TypedDict):
+    """
+    A comment.
+    """
+
+    code: str
+    content: str
+    assignment_value: Decimal
+    penalty_percent: Decimal
+
+
+class GradeBookItem(TypedDict):
+    """
+    A grade book item.
+    """
+
+    name: str
+    grade: Decimal
+    due_date: datetime
+    is_for_grade: bool
+    measure_type: MeasureType
+    comment: Comment
+    # the following are present if is_for_grade is True
+    blame: NotRequired[Decimal]  # the percentage of this assignment contributed to the grade
+    contrib: NotRequired[Decimal]  # the actual number of points contributed to the grade
+
+
+async def get_grade_book_items(
+    username: str,
+    password: str,
+    course_id: int | str = -1,
+    course_name: str = "",
+    course_index: int = -1,
+) -> list[GradeBookItem]:
+    """
+    Get the grade book items for the specified user and course.
+
+    Args:
+        username: the username of the user
+        password: the password of the user
+        and one of the following:
+            course_id: the id of the course
+            course_name: the name of the course
+            course_index: the index of the course in the list of courses
+
+    Returns:
+        the grade book items
+    """
+
+    c = await get_course(username, password, course_id, course_name, course_index)
+    s = await manager.get_session(username, password)

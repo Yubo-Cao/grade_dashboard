@@ -20,10 +20,10 @@ from .analyze import (
     plot_scores,
 )
 from .spider.exception import LoginFailedException
-from .parse import (
+from grade_dashboard.spider.parse import (
     parse_class_data,
     parse_courses_data,
-    parse_gradebook_items,
+    parse_grade_book_items,
     parse_items,
 )
 from .spider.session_manager import manager
@@ -63,10 +63,17 @@ async def handle_course_data(request: web.Request):
     s = await get_session(request)
     c = await get_course(request)
     class_data, items_data = await get_course_data(s, c)
-    grade_book = parse_gradebook_items(class_data, items_data)
+    grade_book = parse_grade_book_items(class_data, items_data)
     grade_book_df, grade_book_meta = grade_book["data"], grade_book["meta"]
+    if type == "raw":
+        result = {
+            "class_data": class_data,
+            "items_data": items_data,
+        }
     class_data, items_data = parse_class_data(class_data), parse_items(items_data)
     match type:
+        case "raw":
+            pass
         case "grade_book":
             result = grade_book
         case "blame":
@@ -121,8 +128,8 @@ async def get_course(request: web.Request):
     try:
         return await resolve_course(
             s,
-            id or name or int(index),
-            type="id" if id else "name" if name else "index",
+            query=id or name or int(index),
+            query_type="id" if id else "name" if name else "index",
         )
     except:
         raise web.HTTPNotFound(reason="Course not found")
@@ -146,7 +153,7 @@ def fig_to_html(fig: go.Figure) -> str:
 @routes.get("/course/plot")
 async def handle_course_plot(request: web.Request):
     c = await get_course(request)
-    grade_book_items = parse_gradebook_items(
+    grade_book_items = parse_grade_book_items(
         *(await get_course_data(await get_session(request), c))
     )
     grade_book_df = grade_book_items["data"]
