@@ -4,7 +4,7 @@ from subprocess import Popen
 import threading
 import time
 
-from grade_dashboard import run as run_server
+from grade import run as run_server
 
 shutdown = threading.Event()
 

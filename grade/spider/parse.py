@@ -4,8 +4,8 @@ from datetime import datetime
 from functools import cache
 import pandas as pd
 
-from grade_dashboard.spider import MeasureType, Comment, GradeBookItem
-from grade_dashboard.utils import to_decimal, first, get, identifier
+from grade.spider import MeasureType, Comment, GradeBookItem
+from grade.utils import to_decimal, first, get, identifier
 
 
 def parse_measure_types(class_data: dict[str, any]) -> list[MeasureType]:

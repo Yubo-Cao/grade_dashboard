@@ -70,7 +70,7 @@ def get_var(var_name: str, script: str) -> Any:
         raise ValueError(f"Cannot find {var_name}")
     st = match.end()
     ed = to_matched(script, st)
-    data = json.loads(script[st: ed + 1])
+    data = json.loads(script[st : ed + 1])
     return data
 
 
@@ -87,7 +87,7 @@ def extract_dict(
 
 
 def chunked(iterable: list[E], n: int) -> Iterable[list[E]]:
-    return (iterable[i: i + n] for i in range(0, len(iterable), n))
+    return (iterable[i : i + n] for i in range(0, len(iterable), n))
 
 
 def flatten(iterable: Iterable[Iterable[E]]) -> Iterable[E]:
@@ -133,7 +133,7 @@ def get(dct: dict[str, Any], key: str, default: D | None = None) -> D | None:
         key = keys[i]
         if key == "*":
             return [
-                get(dct, ".".join(keys[i + 1:]), default)
+                get(dct, ".".join(keys[i + 1 :]), default)
                 for dct in (result.values() if isinstance(result, dict) else result)
             ]
         result = getattr(result, "get", lambda *args, **kwargs: None)(key)

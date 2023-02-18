@@ -10,7 +10,7 @@ from yarl import URL
 
 from .constants import DASHBOARD_URL
 from .exception import SpiderIOException
-from grade_dashboard.utils import (
+from grade.utils import (
     cached,
     chunked,
     find,
